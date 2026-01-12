@@ -2,104 +2,285 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+@import "@fontsource/press-start-2p";
+
+/* 
+  🎮 PIXEL RPG COUPLE - Design System
+  Retro 8-bit aesthetic with limited color palette
+  All colors in HSL
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Core Background Colors - Deep night sky blues */
+    --background: 230 30% 10%;
+    --foreground: 45 90% 88%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Card/Panel - RPG dialog box style */
+    --card: 220 40% 15%;
+    --card-foreground: 45 90% 88%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    /* Popover/Dropdown */
+    --popover: 220 40% 12%;
+    --popover-foreground: 45 90% 88%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary - Golden/Yellow (coins, important actions) */
+    --primary: 45 95% 55%;
+    --primary-foreground: 230 30% 10%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary - Soft teal/cyan (party mode, shared) */
+    --secondary: 175 60% 45%;
+    --secondary-foreground: 230 30% 10%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted - Darker panels */
+    --muted: 220 30% 20%;
+    --muted-foreground: 220 20% 60%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent - Warm pink/red (hearts, love) */
+    --accent: 350 80% 60%;
+    --accent-foreground: 45 90% 95%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Destructive - Classic red */
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 45 90% 95%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Borders - Pixel-style borders */
+    --border: 220 30% 30%;
+    --input: 220 30% 25%;
+    --ring: 45 95% 55%;
 
-    --radius: 0.5rem;
+    /* Custom RPG Colors */
+    --hp-bar: 120 60% 45%;
+    --mp-bar: 220 70% 55%;
+    --xp-bar: 280 60% 55%;
+    --heart-bar: 350 80% 55%;
+    --gold: 45 95% 55%;
+    --silver: 220 10% 70%;
+    
+    /* Personal Mode - Cooler tones */
+    --personal-primary: 200 70% 50%;
+    --personal-bg: 220 35% 12%;
+    
+    /* Party Mode - Warmer tones */
+    --party-primary: 350 75% 60%;
+    --party-bg: 340 30% 15%;
 
-    --sidebar-background: 0 0% 98%;
+    /* UI Elements */
+    --pixel-border: 220 40% 35%;
+    --pixel-shadow: 230 30% 5%;
+    --dialog-bg: 220 50% 18%;
+    --dialog-border: 45 90% 88%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    --radius: 0px;
 
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 220 40% 12%;
+    --sidebar-foreground: 45 90% 88%;
+    --sidebar-primary: 45 95% 55%;
+    --sidebar-primary-foreground: 230 30% 10%;
+    --sidebar-accent: 220 30% 25%;
+    --sidebar-accent-foreground: 45 90% 88%;
+    --sidebar-border: 220 30% 30%;
+    --sidebar-ring: 45 95% 55%;
   }
 }
 
 @layer base {
   * {
     @apply border-border;
+    image-rendering: pixelated;
   }
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    line-height: 1.8;
+  }
+
+  /* Pixel-perfect rendering */
+  img, canvas {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+}
+
+@layer components {
+  /* RPG Dialog Box Style */
+  .rpg-box {
+    @apply relative bg-dialog-bg border-4 border-dialog-border p-4;
+    box-shadow: 
+      inset -4px -4px 0 hsl(var(--pixel-shadow)),
+      4px 4px 0 hsl(var(--pixel-shadow));
+  }
+
+  .rpg-box-accent {
+    @apply relative bg-dialog-bg border-4 border-primary p-4;
+    box-shadow: 
+      inset -4px -4px 0 hsl(var(--pixel-shadow)),
+      4px 4px 0 hsl(var(--pixel-shadow));
+  }
+
+  /* Pixel Button Base */
+  .pixel-btn {
+    @apply relative px-4 py-2 font-bold uppercase tracking-wider;
+    @apply border-4 border-b-8 border-r-8;
+    @apply transition-all duration-75;
+    @apply hover:border-b-4 hover:border-r-4 hover:translate-x-1 hover:translate-y-1;
+    @apply active:border-b-2 active:border-r-2 active:translate-x-1 active:translate-y-1;
+  }
+
+  .pixel-btn-primary {
+    @apply pixel-btn bg-primary text-primary-foreground;
+    @apply border-primary;
+    border-right-color: hsl(45 95% 35%);
+    border-bottom-color: hsl(45 95% 35%);
+  }
+
+  .pixel-btn-secondary {
+    @apply pixel-btn bg-secondary text-secondary-foreground;
+    @apply border-secondary;
+    border-right-color: hsl(175 60% 30%);
+    border-bottom-color: hsl(175 60% 30%);
+  }
+
+  .pixel-btn-accent {
+    @apply pixel-btn bg-accent text-accent-foreground;
+    @apply border-accent;
+    border-right-color: hsl(350 80% 40%);
+    border-bottom-color: hsl(350 80% 40%);
+  }
+
+  /* Stat Bars */
+  .stat-bar {
+    @apply h-4 border-2 border-foreground bg-muted overflow-hidden;
+  }
+
+  .stat-bar-fill {
+    @apply h-full transition-all duration-500;
+  }
+
+  /* Blinking Cursor Animation */
+  .blink {
+    animation: blink 1s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+
+  /* Float Animation */
+  .float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  /* Pulse Glow */
+  .pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { 
+      filter: drop-shadow(0 0 4px hsl(var(--primary)));
+    }
+    50% { 
+      filter: drop-shadow(0 0 16px hsl(var(--primary)));
+    }
+  }
+
+  /* Scanline Effect */
+  .scanlines::after {
+    content: '';
+    @apply absolute inset-0 pointer-events-none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.1) 2px,
+      rgba(0,0,0,0.1) 4px
+    );
+  }
+
+  /* Pixel Border */
+  .pixel-border {
+    @apply border-4;
+    border-style: solid;
+    border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='3' height='3'%3E%3Crect width='3' height='3' fill='%23ffffff'/%3E%3C/svg%3E") 1;
+  }
+
+  /* Toggle Switch Pixel Style */
+  .pixel-toggle {
+    @apply relative w-24 h-10 bg-muted border-4 border-foreground cursor-pointer;
+  }
+
+  .pixel-toggle-knob {
+    @apply absolute top-0 w-10 h-8 bg-primary border-2 border-foreground;
+    transition: left 0.2s ease-out;
+  }
+
+  /* XP Bar Stripes */
+  .xp-stripes {
+    background: repeating-linear-gradient(
+      90deg,
+      hsl(var(--xp-bar)),
+      hsl(var(--xp-bar)) 4px,
+      hsl(280 60% 45%) 4px,
+      hsl(280 60% 45%) 8px
+    );
+  }
+
+  /* Heart Animation */
+  .heart-beat {
+    animation: heart-beat 0.8s ease-in-out infinite;
+  }
+
+  @keyframes heart-beat {
+    0%, 100% { transform: scale(1); }
+    25% { transform: scale(1.1); }
+    50% { transform: scale(1); }
+    75% { transform: scale(1.1); }
+  }
+
+  /* Shake Animation */
+  .shake {
+    animation: shake 0.5s ease-in-out;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+
+  /* Quest Card Hover */
+  .quest-card {
+    @apply rpg-box transition-transform duration-200;
+  }
+
+  .quest-card:hover {
+    transform: translateY(-4px);
+  }
+
+  /* Stars Background */
+  .stars-bg {
+    background-image: 
+      radial-gradient(2px 2px at 20px 30px, hsl(var(--foreground)), transparent),
+      radial-gradient(2px 2px at 40px 70px, hsl(var(--foreground)), transparent),
+      radial-gradient(1px 1px at 90px 40px, hsl(var(--foreground)), transparent),
+      radial-gradient(2px 2px at 130px 80px, hsl(var(--foreground)), transparent),
+      radial-gradient(1px 1px at 160px 120px, hsl(var(--foreground)), transparent);
+    background-repeat: repeat;
+    background-size: 200px 200px;
+    animation: twinkle 4s ease-in-out infinite;
+  }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
   }
 }

@@ -13,6 +13,9 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        pixel: ['"Press Start 2P"', 'monospace'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -57,6 +60,29 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // RPG-specific colors
+        hp: "hsl(var(--hp-bar))",
+        mp: "hsl(var(--mp-bar))",
+        xp: "hsl(var(--xp-bar))",
+        heart: "hsl(var(--heart-bar))",
+        gold: "hsl(var(--gold))",
+        silver: "hsl(var(--silver))",
+        personal: {
+          DEFAULT: "hsl(var(--personal-primary))",
+          bg: "hsl(var(--personal-bg))",
+        },
+        party: {
+          DEFAULT: "hsl(var(--party-primary))",
+          bg: "hsl(var(--party-bg))",
+        },
+        dialog: {
+          bg: "hsl(var(--dialog-bg))",
+          border: "hsl(var(--dialog-border))",
+        },
+        pixel: {
+          border: "hsl(var(--pixel-border))",
+          shadow: "hsl(var(--pixel-shadow))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -65,25 +91,32 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "fade-in": {
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "slide-up": {
+          "0%": { opacity: "0", transform: "translateY(20px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "pixel-bounce": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-4px)" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "fade-in": "fade-in 0.5s ease-out",
+        "slide-up": "slide-up 0.5s ease-out",
+        "pixel-bounce": "pixel-bounce 0.5s ease-in-out",
       },
     },
   },
