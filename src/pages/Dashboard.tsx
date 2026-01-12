@@ -8,11 +8,21 @@ import QuestCard, { Quest } from "@/components/QuestCard";
 import LogbookEntry from "@/components/LogbookEntry";
 import WalletDisplay from "@/components/WalletDisplay";
 import PartyAvatars from "@/components/PartyAvatars";
+import NewQuestModal, { QuestFormData } from "@/components/modals/NewQuestModal";
+import ShopModal from "@/components/modals/ShopModal";
+import SkillsModal from "@/components/modals/SkillsModal";
+import SettingsModal from "@/components/modals/SettingsModal";
 import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [isPartyMode, setIsPartyMode] = useState(false);
+  
+  // Modal states
+  const [isNewQuestOpen, setIsNewQuestOpen] = useState(false);
+  const [isShopOpen, setIsShopOpen] = useState(false);
+  const [isSkillsOpen, setIsSkillsOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   // Mock player data
   const player = {
@@ -97,6 +107,21 @@ const Dashboard = () => {
     ));
   };
 
+  const handleCreateQuest = (data: QuestFormData) => {
+    const xpMap = { easy: 10, medium: 30, hard: 50, boss: 100 };
+    const newQuest: Quest = {
+      id: String(Date.now()),
+      title: data.title,
+      description: data.description,
+      xpReward: xpMap[data.difficulty],
+      goldReward: Math.floor(xpMap[data.difficulty] / 2),
+      difficulty: data.difficulty,
+      status: "pending",
+      scope: data.scope,
+    };
+    setQuests([...quests, newQuest]);
+  };
+
   const filteredQuests = quests.filter(q => 
     isPartyMode ? q.scope === 'shared' : q.scope === 'personal'
   );
@@ -118,7 +143,10 @@ const Dashboard = () => {
           <ModeToggle isPartyMode={isPartyMode} onToggle={() => setIsPartyMode(!isPartyMode)} />
           
           <div className="flex items-center gap-4">
-            <button className="p-2 hover:bg-muted transition-colors">
+            <button 
+              onClick={() => setIsSettingsOpen(true)}
+              className="p-2 hover:bg-muted transition-colors"
+            >
               <Settings className="w-4 h-4 text-muted-foreground" />
             </button>
             <button 
@@ -281,17 +309,46 @@ const Dashboard = () => {
       {/* Footer */}
       <footer className="fixed bottom-0 left-0 right-0 border-t-4 border-border bg-background p-2">
         <div className="container mx-auto flex items-center justify-center gap-8">
-          <button className="pixel-btn-primary text-[8px] px-3 py-1">
+          <button 
+            onClick={() => setIsNewQuestOpen(true)}
+            className="pixel-btn-primary text-[8px] px-3 py-1"
+          >
             + NEW QUEST
           </button>
-          <button className="pixel-btn-secondary text-[8px] px-3 py-1">
+          <button 
+            onClick={() => setIsShopOpen(true)}
+            className="pixel-btn-secondary text-[8px] px-3 py-1"
+          >
             SHOP
           </button>
-          <button className="pixel-btn-accent text-[8px] px-3 py-1">
+          <button 
+            onClick={() => setIsSkillsOpen(true)}
+            className="pixel-btn-accent text-[8px] px-3 py-1"
+          >
             SKILLS
           </button>
         </div>
       </footer>
+
+      {/* Modals */}
+      <NewQuestModal 
+        isOpen={isNewQuestOpen} 
+        onClose={() => setIsNewQuestOpen(false)} 
+        onSubmit={handleCreateQuest}
+      />
+      <ShopModal 
+        isOpen={isShopOpen} 
+        onClose={() => setIsShopOpen(false)} 
+        playerGold={player.gold}
+      />
+      <SkillsModal 
+        isOpen={isSkillsOpen} 
+        onClose={() => setIsSkillsOpen(false)} 
+      />
+      <SettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+      />
     </div>
   );
 };
