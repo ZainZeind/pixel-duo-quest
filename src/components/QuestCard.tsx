@@ -7,7 +7,7 @@ export interface Quest {
   description: string;
   xpReward: number;
   goldReward: number;
-  difficulty: "easy" | "medium" | "hard";
+  difficulty: "easy" | "medium" | "hard" | "boss";
   status: "pending" | "in_progress" | "waiting_approval" | "completed";
   scope: "personal" | "shared";
 }
@@ -18,10 +18,11 @@ interface QuestCardProps {
 }
 
 const QuestCard = ({ quest, onComplete }: QuestCardProps) => {
-  const difficultyStars = {
+  const difficultyStars: Record<Quest["difficulty"], number> = {
     easy: 1,
     medium: 2,
     hard: 3,
+    boss: 4,
   };
 
   const statusColors = {
