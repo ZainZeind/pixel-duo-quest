@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Scroll, BookOpen, Trophy, Settings, LogOut } from "lucide-react";
+import { Scroll, BookOpen, Trophy, Settings, LogOut, Gamepad2 } from "lucide-react";
 import ModeToggle from "@/components/ModeToggle";
 import RPGDialog from "@/components/RPGDialog";
 import StatBar from "@/components/StatBar";
@@ -12,6 +12,7 @@ import NewQuestModal, { QuestFormData } from "@/components/modals/NewQuestModal"
 import ShopModal from "@/components/modals/ShopModal";
 import SkillsModal from "@/components/modals/SkillsModal";
 import SettingsModal from "@/components/modals/SettingsModal";
+import ArcadeZone from "@/components/games/ArcadeZone";
 import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
@@ -23,6 +24,7 @@ const Dashboard = () => {
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isSkillsOpen, setIsSkillsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isArcadeOpen, setIsArcadeOpen] = useState(false);
   
   // Mock player data
   const player = {
@@ -143,6 +145,13 @@ const Dashboard = () => {
           <ModeToggle isPartyMode={isPartyMode} onToggle={() => setIsPartyMode(!isPartyMode)} />
           
           <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsArcadeOpen(true)}
+              className="p-2 hover:bg-muted transition-colors"
+              title="Arcade Zone"
+            >
+              <Gamepad2 className="w-4 h-4 text-primary" />
+            </button>
             <button 
               onClick={() => setIsSettingsOpen(true)}
               className="p-2 hover:bg-muted transition-colors"
@@ -348,6 +357,10 @@ const Dashboard = () => {
       <SettingsModal 
         isOpen={isSettingsOpen} 
         onClose={() => setIsSettingsOpen(false)} 
+      />
+      <ArcadeZone 
+        isOpen={isArcadeOpen} 
+        onClose={() => setIsArcadeOpen(false)} 
       />
     </div>
   );
