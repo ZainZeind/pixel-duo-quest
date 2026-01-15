@@ -1,81 +1,90 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 
-const GRID_SIZE = 8;
-const CELL_SIZE = 40;
+const BOARD_WIDTH = 10;
+const BOARD_HEIGHT = 20;
+const CELL_SIZE = 24;
+const INITIAL_SPEED = 1000;
+const SPEED_INCREASE = 50;
+const MIN_SPEED = 100;
 
-type BlockShape = number[][];
+// Tetromino shapes
+const TETROMINOES = {
+  I: { shape: [[1, 1, 1, 1]], color: "bg-cyan-400 border-cyan-300" },
+  O: { shape: [[1, 1], [1, 1]], color: "bg-yellow-400 border-yellow-300" },
+  T: { shape: [[0, 1, 0], [1, 1, 1]], color: "bg-purple-400 border-purple-300" },
+  S: { shape: [[0, 1, 1], [1, 1, 0]], color: "bg-green-400 border-green-300" },
+  Z: { shape: [[1, 1, 0], [0, 1, 1]], color: "bg-red-400 border-red-300" },
+  J: { shape: [[1, 0, 0], [1, 1, 1]], color: "bg-blue-400 border-blue-300" },
+  L: { shape: [[0, 0, 1], [1, 1, 1]], color: "bg-orange-400 border-orange-300" },
+};
 
-interface Block {
-  id: number;
-  shape: BlockShape;
+type TetrominoType = keyof typeof TETROMINOES;
+type Board = (string | null)[][];
+
+interface Piece {
+  type: TetrominoType;
+  shape: number[][];
+  x: number;
+  y: number;
   color: string;
 }
 
-const SHAPES: BlockShape[] = [
-  [[1]], // 1x1
-  [[1, 1]], // 1x2
-  [[1], [1]], // 2x1
-  [[1, 1, 1]], // 1x3
-  [[1], [1], [1]], // 3x1
-  [[1, 1], [1, 1]], // 2x2
-  [[1, 1, 1], [1, 0, 0]], // L shape
-  [[1, 0], [1, 0], [1, 1]], // J shape
-  [[1, 1, 0], [0, 1, 1]], // S shape
-  [[0, 1, 1], [1, 1, 0]], // Z shape
-  [[1, 1, 1], [0, 1, 0]], // T shape
-];
-
-const COLORS = [
-  "bg-cyan-400 border-cyan-300",
-  "bg-pink-400 border-pink-300",
-  "bg-yellow-400 border-yellow-300",
-  "bg-green-400 border-green-300",
-  "bg-purple-400 border-purple-300",
-  "bg-orange-400 border-orange-300",
-  "bg-red-400 border-red-300",
-];
-
 const BrickBuilderGame = () => {
-  const [grid, setGrid] = useState<(string | null)[][]>(() =>
-    Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null))
-  );
-  const [availableBlocks, setAvailableBlocks] = useState<Block[]>([]);
-  const [draggedBlock, setDraggedBlock] = useState<Block | null>(null);
-  const [hoverPosition, setHoverPosition] = useState<{ row: number; col: number } | null>(null);
+  const [gameState, setGameState] = useState<"idle" | "playing" | "paused" | "gameover">("idle");
+  const [board, setBoard] = useState<Board>(() => createEmptyBoard());
+  const [currentPiece, setCurrentPiece] = useState<Piece | null>(null);
+  const [nextPiece, setNextPiece] = useState<TetrominoType | null>(null);
   const [score, setScore] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [lines, setLines] = useState(0);
   const [highScore, setHighScore] = useState(() => {
-    return parseInt(localStorage.getItem("brick-builder-highscore") || "0");
+    return parseInt(localStorage.getItem("block-blast-highscore") || "0");
   });
-  const [gameOver, setGameOver] = useState(false);
 
-  const generateBlocks = useCallback(() => {
-    const newBlocks: Block[] = [];
-    for (let i = 0; i < 3; i++) {
-      const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
-      const color = COLORS[Math.floor(Math.random() * COLORS.length)];
-      newBlocks.push({ id: Date.now() + i, shape, color });
-    }
-    return newBlocks;
+  const gameLoopRef = useRef<number>();
+  const lastDropRef = useRef<number>(0);
+  const speedRef = useRef(INITIAL_SPEED);
+
+  function createEmptyBoard(): Board {
+    return Array(BOARD_HEIGHT).fill(null).map(() => Array(BOARD_WIDTH).fill(null));
+  }
+
+  function getRandomTetromino(): TetrominoType {
+    const types = Object.keys(TETROMINOES) as TetrominoType[];
+    return types[Math.floor(Math.random() * types.length)];
+  }
+
+  function createPiece(type: TetrominoType): Piece {
+    const tetro = TETROMINOES[type];
+    return {
+      type,
+      shape: tetro.shape.map(row => [...row]),
+      x: Math.floor((BOARD_WIDTH - tetro.shape[0].length) / 2),
+      y: 0,
+      color: tetro.color,
+    };
+  }
+
+  const rotatePiece = useCallback((piece: Piece): Piece => {
+    const newShape = piece.shape[0].map((_, colIndex) =>
+      piece.shape.map(row => row[colIndex]).reverse()
+    );
+    return { ...piece, shape: newShape };
   }, []);
 
-  useEffect(() => {
-    setAvailableBlocks(generateBlocks());
-  }, [generateBlocks]);
+  const isValidPosition = useCallback((piece: Piece, boardState: Board): boolean => {
+    for (let row = 0; row < piece.shape.length; row++) {
+      for (let col = 0; col < piece.shape[row].length; col++) {
+        if (piece.shape[row][col]) {
+          const newX = piece.x + col;
+          const newY = piece.y + row;
 
-  const canPlaceBlock = useCallback((block: Block, row: number, col: number, currentGrid: (string | null)[][]) => {
-    for (let r = 0; r < block.shape.length; r++) {
-      for (let c = 0; c < block.shape[r].length; c++) {
-        if (block.shape[r][c] === 1) {
-          const newRow = row + r;
-          const newCol = col + c;
-          if (
-            newRow < 0 ||
-            newRow >= GRID_SIZE ||
-            newCol < 0 ||
-            newCol >= GRID_SIZE ||
-            currentGrid[newRow][newCol] !== null
-          ) {
+          if (newX < 0 || newX >= BOARD_WIDTH || newY >= BOARD_HEIGHT) {
+            return false;
+          }
+
+          if (newY >= 0 && boardState[newY][newX]) {
             return false;
           }
         }
@@ -84,252 +93,411 @@ const BrickBuilderGame = () => {
     return true;
   }, []);
 
-  const checkGameOver = useCallback((blocks: Block[], currentGrid: (string | null)[][]) => {
-    for (const block of blocks) {
-      for (let row = 0; row < GRID_SIZE; row++) {
-        for (let col = 0; col < GRID_SIZE; col++) {
-          if (canPlaceBlock(block, row, col, currentGrid)) {
-            return false;
+  const lockPiece = useCallback((piece: Piece, boardState: Board): Board => {
+    const newBoard = boardState.map(row => [...row]);
+    
+    for (let row = 0; row < piece.shape.length; row++) {
+      for (let col = 0; col < piece.shape[row].length; col++) {
+        if (piece.shape[row][col]) {
+          const newY = piece.y + row;
+          const newX = piece.x + col;
+          if (newY >= 0 && newY < BOARD_HEIGHT && newX >= 0 && newX < BOARD_WIDTH) {
+            newBoard[newY][newX] = piece.color;
           }
         }
       }
     }
-    return true;
-  }, [canPlaceBlock]);
-
-  const placeBlock = useCallback((block: Block, row: number, col: number) => {
-    if (!canPlaceBlock(block, row, col, grid)) return;
-
-    const newGrid = grid.map(r => [...r]);
     
-    // Place the block
-    for (let r = 0; r < block.shape.length; r++) {
-      for (let c = 0; c < block.shape[r].length; c++) {
-        if (block.shape[r][c] === 1) {
-          newGrid[row + r][col + c] = block.color;
-        }
-      }
-    }
+    return newBoard;
+  }, []);
 
-    // Check for completed rows and columns
-    let linesCleared = 0;
-    const rowsToClear: number[] = [];
-    const colsToClear: number[] = [];
-
-    // Check rows
-    for (let r = 0; r < GRID_SIZE; r++) {
-      if (newGrid[r].every(cell => cell !== null)) {
-        rowsToClear.push(r);
-      }
-    }
-
-    // Check columns
-    for (let c = 0; c < GRID_SIZE; c++) {
-      if (newGrid.every(row => row[c] !== null)) {
-        colsToClear.push(c);
-      }
-    }
-
-    // Clear rows
-    for (const r of rowsToClear) {
-      newGrid[r] = Array(GRID_SIZE).fill(null);
-      linesCleared++;
-    }
-
-    // Clear columns
-    for (const c of colsToClear) {
-      for (let r = 0; r < GRID_SIZE; r++) {
-        newGrid[r][c] = null;
-      }
-      linesCleared++;
-    }
-
-    setGrid(newGrid);
-
-    // Calculate score
-    const blockScore = block.shape.flat().filter(c => c === 1).length * 10;
-    const lineBonus = linesCleared * 100;
-    const newScore = score + blockScore + lineBonus;
-    setScore(newScore);
-
-    if (newScore > highScore) {
-      setHighScore(newScore);
-      localStorage.setItem("brick-builder-highscore", String(newScore));
-    }
-
-    // Remove used block and maybe generate new ones
-    const newAvailable = availableBlocks.filter(b => b.id !== block.id);
+  const clearLines = useCallback((boardState: Board): { newBoard: Board; linesCleared: number } => {
+    const newBoard = boardState.filter(row => row.some(cell => !cell));
+    const linesCleared = BOARD_HEIGHT - newBoard.length;
     
-    if (newAvailable.length === 0) {
-      const freshBlocks = generateBlocks();
-      setAvailableBlocks(freshBlocks);
-      
-      if (checkGameOver(freshBlocks, newGrid)) {
-        setGameOver(true);
-      }
-    } else {
-      setAvailableBlocks(newAvailable);
-      
-      if (checkGameOver(newAvailable, newGrid)) {
-        setGameOver(true);
-      }
+    while (newBoard.length < BOARD_HEIGHT) {
+      newBoard.unshift(Array(BOARD_WIDTH).fill(null));
     }
-  }, [grid, score, highScore, availableBlocks, canPlaceBlock, checkGameOver, generateBlocks]);
+    
+    return { newBoard, linesCleared };
+  }, []);
 
-  const resetGame = () => {
-    setGrid(Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null)));
-    setAvailableBlocks(generateBlocks());
+  const startGame = useCallback(() => {
+    setBoard(createEmptyBoard());
     setScore(0);
-    setGameOver(false);
-  };
-
-  const handleDragStart = (block: Block) => {
-    setDraggedBlock(block);
-  };
-
-  const handleDragEnd = () => {
-    if (draggedBlock && hoverPosition) {
-      placeBlock(draggedBlock, hoverPosition.row, hoverPosition.col);
-    }
-    setDraggedBlock(null);
-    setHoverPosition(null);
-  };
-
-  const handleCellClick = (row: number, col: number) => {
-    if (draggedBlock && canPlaceBlock(draggedBlock, row, col, grid)) {
-      placeBlock(draggedBlock, row, col);
-      setDraggedBlock(null);
-    }
-  };
-
-  const handleBlockClick = (block: Block) => {
-    if (draggedBlock?.id === block.id) {
-      setDraggedBlock(null);
-    } else {
-      setDraggedBlock(block);
-    }
-  };
-
-  const getPreviewCells = () => {
-    if (!draggedBlock || !hoverPosition) return new Set<string>();
-    const cells = new Set<string>();
+    setLevel(1);
+    setLines(0);
+    speedRef.current = INITIAL_SPEED;
     
-    for (let r = 0; r < draggedBlock.shape.length; r++) {
-      for (let c = 0; c < draggedBlock.shape[r].length; c++) {
-        if (draggedBlock.shape[r][c] === 1) {
-          const newRow = hoverPosition.row + r;
-          const newCol = hoverPosition.col + c;
-          if (newRow >= 0 && newRow < GRID_SIZE && newCol >= 0 && newCol < GRID_SIZE) {
-            cells.add(`${newRow}-${newCol}`);
+    const firstType = getRandomTetromino();
+    const secondType = getRandomTetromino();
+    
+    setCurrentPiece(createPiece(firstType));
+    setNextPiece(secondType);
+    setGameState("playing");
+  }, []);
+
+  const movePiece = useCallback((dx: number, dy: number) => {
+    if (!currentPiece || gameState !== "playing") return;
+
+    const newPiece = { ...currentPiece, x: currentPiece.x + dx, y: currentPiece.y + dy };
+
+    if (isValidPosition(newPiece, board)) {
+      setCurrentPiece(newPiece);
+      return true;
+    } else if (dy > 0) {
+      // Lock piece when can't move down
+      const newBoard = lockPiece(currentPiece, board);
+      const { newBoard: clearedBoard, linesCleared } = clearLines(newBoard);
+      
+      setBoard(clearedBoard);
+      
+      if (linesCleared > 0) {
+        const points = [0, 100, 300, 500, 800][linesCleared] * level;
+        setScore(s => s + points);
+        setLines(l => {
+          const newLines = l + linesCleared;
+          if (Math.floor(newLines / 10) > Math.floor(l / 10)) {
+            setLevel(lv => lv + 1);
+            speedRef.current = Math.max(MIN_SPEED, speedRef.current - SPEED_INCREASE);
           }
+          return newLines;
+        });
+      }
+      
+      // Spawn new piece
+      if (nextPiece) {
+        const newPiece = createPiece(nextPiece);
+        if (!isValidPosition(newPiece, clearedBoard)) {
+          // Game over
+          setGameState("gameover");
+          if (score > highScore) {
+            setHighScore(score);
+            localStorage.setItem("block-blast-highscore", String(score));
+          }
+          return false;
         }
+        setCurrentPiece(newPiece);
+        setNextPiece(getRandomTetromino());
+      }
+      return false;
+    }
+    return false;
+  }, [currentPiece, board, gameState, isValidPosition, lockPiece, clearLines, nextPiece, level, score, highScore]);
+
+  const hardDrop = useCallback(() => {
+    if (!currentPiece || gameState !== "playing") return;
+    
+    let piece = { ...currentPiece };
+    while (isValidPosition({ ...piece, y: piece.y + 1 }, board)) {
+      piece.y++;
+    }
+    setCurrentPiece(piece);
+    
+    // Force immediate lock
+    setTimeout(() => movePiece(0, 1), 0);
+  }, [currentPiece, gameState, board, isValidPosition, movePiece]);
+
+  const rotate = useCallback(() => {
+    if (!currentPiece || gameState !== "playing") return;
+    
+    const rotated = rotatePiece(currentPiece);
+    
+    // Try wall kicks
+    const kicks = [0, -1, 1, -2, 2];
+    for (const kick of kicks) {
+      const kicked = { ...rotated, x: rotated.x + kick };
+      if (isValidPosition(kicked, board)) {
+        setCurrentPiece(kicked);
+        return;
       }
     }
-    return cells;
-  };
+  }, [currentPiece, gameState, rotatePiece, isValidPosition, board]);
 
-  const previewCells = getPreviewCells();
-  const canPlace = draggedBlock && hoverPosition ? canPlaceBlock(draggedBlock, hoverPosition.row, hoverPosition.col, grid) : false;
+  // Keyboard controls
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameState !== "playing") {
+        if (e.code === "Space" && gameState === "idle") {
+          startGame();
+        }
+        return;
+      }
 
-  return (
-    <div className="flex flex-col items-center">
-      {/* Score Display */}
-      <div className="flex gap-8 mb-4">
-        <div className="text-center">
-          <p className="text-[8px] text-gray-400">SCORE</p>
-          <p className="font-pixel text-lg text-cyan-400">{score}</p>
-        </div>
-        <div className="text-center">
-          <p className="text-[8px] text-gray-400">BEST</p>
-          <p className="font-pixel text-lg text-yellow-400">{highScore}</p>
-        </div>
-      </div>
+      switch (e.code) {
+        case "ArrowLeft":
+          e.preventDefault();
+          movePiece(-1, 0);
+          break;
+        case "ArrowRight":
+          e.preventDefault();
+          movePiece(1, 0);
+          break;
+        case "ArrowDown":
+          e.preventDefault();
+          movePiece(0, 1);
+          break;
+        case "ArrowUp":
+        case "KeyX":
+          e.preventDefault();
+          rotate();
+          break;
+        case "Space":
+          e.preventDefault();
+          hardDrop();
+          break;
+        case "KeyP":
+          setGameState(s => s === "playing" ? "paused" : "playing");
+          break;
+      }
+    };
 
-      {/* Grid */}
-      <div
-        className="border-4 border-cyan-400 bg-[#0a0a1a] relative"
-        style={{
-          width: GRID_SIZE * CELL_SIZE + 8,
-          height: GRID_SIZE * CELL_SIZE + 8,
-          padding: 4,
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [gameState, movePiece, rotate, hardDrop, startGame]);
+
+  // Game loop
+  useEffect(() => {
+    if (gameState !== "playing") return;
+
+    const gameLoop = (timestamp: number) => {
+      if (timestamp - lastDropRef.current >= speedRef.current) {
+        movePiece(0, 1);
+        lastDropRef.current = timestamp;
+      }
+      gameLoopRef.current = requestAnimationFrame(gameLoop);
+    };
+
+    lastDropRef.current = performance.now();
+    gameLoopRef.current = requestAnimationFrame(gameLoop);
+
+    return () => {
+      if (gameLoopRef.current) {
+        cancelAnimationFrame(gameLoopRef.current);
+      }
+    };
+  }, [gameState, movePiece]);
+
+  // Render ghost piece (preview where piece will land)
+  const getGhostPosition = useCallback(() => {
+    if (!currentPiece) return null;
+    
+    let ghostY = currentPiece.y;
+    while (isValidPosition({ ...currentPiece, y: ghostY + 1 }, board)) {
+      ghostY++;
+    }
+    return ghostY;
+  }, [currentPiece, board, isValidPosition]);
+
+  const renderBoard = () => {
+    const ghostY = getGhostPosition();
+    
+    return (
+      <div 
+        className="relative border-4 border-primary bg-slate-900"
+        style={{ 
+          width: BOARD_WIDTH * CELL_SIZE + 8, 
+          height: BOARD_HEIGHT * CELL_SIZE + 8 
         }}
       >
-        <div className="grid gap-0" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, ${CELL_SIZE}px)` }}>
-          {grid.map((row, rowIndex) =>
-            row.map((cell, colIndex) => {
-              const isPreview = previewCells.has(`${rowIndex}-${colIndex}`);
-              return (
-                <motion.div
-                  key={`${rowIndex}-${colIndex}`}
-                  className={`
-                    border border-cyan-900/50 transition-all cursor-pointer
-                    ${cell ? `${cell} border-2` : "bg-[#0a0a2a]"}
-                    ${isPreview && canPlace ? `${draggedBlock?.color} opacity-50` : ""}
-                    ${isPreview && !canPlace ? "bg-red-500/30" : ""}
-                  `}
-                  style={{ width: CELL_SIZE, height: CELL_SIZE }}
-                  onClick={() => handleCellClick(rowIndex, colIndex)}
-                  onMouseEnter={() => draggedBlock && setHoverPosition({ row: rowIndex, col: colIndex })}
-                  onMouseLeave={() => setHoverPosition(null)}
-                  whileHover={{ scale: draggedBlock ? 1.1 : 1 }}
-                />
-              );
-            })
+        {/* Grid lines */}
+        <div className="absolute inset-1 grid" style={{ 
+          gridTemplateColumns: `repeat(${BOARD_WIDTH}, ${CELL_SIZE}px)`,
+          gridTemplateRows: `repeat(${BOARD_HEIGHT}, ${CELL_SIZE}px)`,
+        }}>
+          {board.map((row, y) =>
+            row.map((cell, x) => (
+              <div
+                key={`${y}-${x}`}
+                className={`border border-slate-800 ${cell || ''}`}
+                style={{ width: CELL_SIZE, height: CELL_SIZE }}
+              />
+            ))
           )}
         </div>
 
-        {/* Game Over Overlay */}
-        {gameOver && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80">
-            <p className="font-pixel text-lg text-red-400 mb-4">GAME OVER</p>
-            <p className="font-pixel text-sm text-white mb-2">SCORE: {score}</p>
-            <p className="font-pixel text-[10px] text-yellow-400 mb-6">BEST: {highScore}</p>
-            <button
-              onClick={resetGame}
-              className="pixel-btn border-2 border-cyan-400 text-cyan-400 px-4 py-2 text-[10px] hover:bg-cyan-400/20"
+        {/* Ghost piece */}
+        {currentPiece && ghostY !== null && ghostY !== currentPiece.y && (
+          <div className="absolute top-1 left-1">
+            {currentPiece.shape.map((row, y) =>
+              row.map((cell, x) =>
+                cell ? (
+                  <div
+                    key={`ghost-${y}-${x}`}
+                    className="absolute border-2 border-dashed border-white/30"
+                    style={{
+                      left: (currentPiece.x + x) * CELL_SIZE,
+                      top: (ghostY + y) * CELL_SIZE,
+                      width: CELL_SIZE,
+                      height: CELL_SIZE,
+                    }}
+                  />
+                ) : null
+              )
+            )}
+          </div>
+        )}
+
+        {/* Current piece */}
+        {currentPiece && (
+          <div className="absolute top-1 left-1">
+            {currentPiece.shape.map((row, y) =>
+              row.map((cell, x) =>
+                cell ? (
+                  <motion.div
+                    key={`piece-${y}-${x}`}
+                    className={`absolute ${currentPiece.color} border-2`}
+                    style={{
+                      left: (currentPiece.x + x) * CELL_SIZE,
+                      top: (currentPiece.y + y) * CELL_SIZE,
+                      width: CELL_SIZE,
+                      height: CELL_SIZE,
+                    }}
+                    initial={{ scale: 0.8 }}
+                    animate={{ scale: 1 }}
+                  />
+                ) : null
+              )
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderNextPiece = () => {
+    if (!nextPiece) return null;
+    
+    const tetro = TETROMINOES[nextPiece];
+    
+    return (
+      <div className="bg-slate-800 p-2 border-2 border-border">
+        <p className="text-[8px] text-muted-foreground mb-2">NEXT</p>
+        <div className="grid gap-0.5" style={{ 
+          gridTemplateColumns: `repeat(${tetro.shape[0].length}, 16px)` 
+        }}>
+          {tetro.shape.map((row, y) =>
+            row.map((cell, x) => (
+              <div
+                key={`next-${y}-${x}`}
+                className={`w-4 h-4 ${cell ? tetro.color + ' border' : 'bg-transparent'}`}
+              />
+            ))
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex flex-col items-center">
+      <div className="flex gap-4">
+        {/* Main game board */}
+        <div className="relative">
+          {renderBoard()}
+
+          {/* Idle overlay */}
+          {gameState === "idle" && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
+              <p className="font-pixel text-lg text-primary mb-4">BLOCK BLAST</p>
+              <p className="text-[10px] text-muted-foreground mb-6">Tetris-style puzzle!</p>
+              <button
+                onClick={startGame}
+                className="pixel-btn border-2 border-primary text-primary px-4 py-2 text-[10px] hover:bg-primary/20"
+              >
+                START GAME
+              </button>
+              <p className="text-[8px] text-muted-foreground mt-4">or press SPACE</p>
+            </div>
+          )}
+
+          {/* Paused overlay */}
+          {gameState === "paused" && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
+              <p className="font-pixel text-lg text-yellow-400 mb-4">PAUSED</p>
+              <p className="text-[8px] text-muted-foreground">Press P to continue</p>
+            </div>
+          )}
+
+          {/* Game over overlay */}
+          {gameState === "gameover" && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
+              <p className="font-pixel text-lg text-red-400 mb-4">GAME OVER</p>
+              <p className="font-pixel text-sm text-white mb-2">SCORE: {score}</p>
+              <p className="font-pixel text-[10px] text-yellow-400 mb-6">BEST: {highScore}</p>
+              <button
+                onClick={startGame}
+                className="pixel-btn border-2 border-primary text-primary px-4 py-2 text-[10px] hover:bg-primary/20"
+              >
+                TRY AGAIN
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Side panel */}
+        <div className="flex flex-col gap-4">
+          {renderNextPiece()}
+          
+          <div className="bg-slate-800 p-2 border-2 border-border">
+            <p className="text-[8px] text-muted-foreground">SCORE</p>
+            <p className="font-pixel text-sm text-primary">{score}</p>
+          </div>
+          
+          <div className="bg-slate-800 p-2 border-2 border-border">
+            <p className="text-[8px] text-muted-foreground">LEVEL</p>
+            <p className="font-pixel text-sm text-secondary">{level}</p>
+          </div>
+          
+          <div className="bg-slate-800 p-2 border-2 border-border">
+            <p className="text-[8px] text-muted-foreground">LINES</p>
+            <p className="font-pixel text-sm text-gold">{lines}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="mt-4 text-center">
+        <p className="text-[8px] text-muted-foreground">
+          ← → Move • ↓ Soft Drop • ↑ Rotate • SPACE Hard Drop • P Pause
+        </p>
+        
+        {/* Touch controls for mobile */}
+        {gameState === "playing" && (
+          <div className="flex gap-2 mt-3 justify-center">
+            <button 
+              onClick={() => movePiece(-1, 0)}
+              className="w-10 h-10 bg-slate-700 border-2 border-slate-600 text-white text-lg active:bg-slate-600"
             >
-              PLAY AGAIN
+              ←
+            </button>
+            <button 
+              onClick={() => rotate()}
+              className="w-10 h-10 bg-slate-700 border-2 border-slate-600 text-white text-lg active:bg-slate-600"
+            >
+              ↻
+            </button>
+            <button 
+              onClick={() => movePiece(1, 0)}
+              className="w-10 h-10 bg-slate-700 border-2 border-slate-600 text-white text-lg active:bg-slate-600"
+            >
+              →
+            </button>
+            <button 
+              onClick={() => movePiece(0, 1)}
+              className="w-10 h-10 bg-slate-700 border-2 border-slate-600 text-white text-lg active:bg-slate-600"
+            >
+              ↓
+            </button>
+            <button 
+              onClick={hardDrop}
+              className="w-10 h-10 bg-primary/50 border-2 border-primary text-white text-lg active:bg-primary/70"
+            >
+              ⬇
             </button>
           </div>
         )}
       </div>
-
-      {/* Available Blocks */}
-      <div className="mt-6">
-        <p className="text-[8px] text-gray-400 text-center mb-3">
-          {draggedBlock ? "CLICK ON GRID TO PLACE" : "SELECT A BLOCK"}
-        </p>
-        <div className="flex gap-4 justify-center">
-          {availableBlocks.map((block) => (
-            <motion.div
-              key={block.id}
-              className={`
-                p-2 border-2 cursor-pointer transition-all
-                ${draggedBlock?.id === block.id ? "border-white bg-white/10" : "border-gray-600 hover:border-gray-400"}
-              `}
-              onClick={() => handleBlockClick(block)}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <div className="grid gap-0" style={{ gridTemplateColumns: `repeat(${block.shape[0].length}, 16px)` }}>
-                {block.shape.map((row, r) =>
-                  row.map((cell, c) => (
-                    <div
-                      key={`${r}-${c}`}
-                      className={`w-4 h-4 ${cell ? `${block.color} border` : ""}`}
-                    />
-                  ))
-                )}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      {/* Controls hint */}
-      <p className="text-[8px] text-gray-400 mt-4">
-        Click block to select, then click on grid to place
-      </p>
     </div>
   );
 };

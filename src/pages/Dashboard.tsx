@@ -139,19 +139,15 @@ const Dashboard = () => {
     localStorage.setItem("pdq_letters_user", JSON.stringify(letters));
   }, [letters]);
 
-  // Get avatar emoji based on user
-  const getAvatarEmoji = () => {
-    if (!user) return "🧙";
-    const avatars = user.gender === 'male' ? MALE_AVATARS : FEMALE_AVATARS;
-    const avatar = avatars.find(a => a.id === user.avatarId);
-    return avatar?.emoji || (user.gender === 'male' ? '🧙‍♂️' : '🧙‍♀️');
+  // Get avatar image based on gender
+  const getAvatarImage = () => {
+    if (!user) return "/char-male.png";
+    return user.gender === 'female' ? '/char-female.png' : '/char-male.png';
   };
 
-  const getPartnerAvatarEmoji = () => {
-    if (!partner) return "🧙";
-    const avatars = partner.gender === 'male' ? MALE_AVATARS : FEMALE_AVATARS;
-    const avatar = avatars.find(a => a.id === partner.avatarId);
-    return avatar?.emoji || (partner.gender === 'male' ? '🧙‍♂️' : '🧙‍♀️');
+  const getPartnerAvatarImage = () => {
+    if (!partner) return "/char-female.png";
+    return partner.gender === 'female' ? '/char-female.png' : '/char-male.png';
   };
 
   // Handlers
@@ -245,68 +241,70 @@ const Dashboard = () => {
       isPartyMode ? 'bg-party-bg' : 'bg-personal-bg'
     }`}>
       {/* Header */}
-      <header className="border-b-4 border-border p-4">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-sm text-primary">COUPLE QUEST</h1>
-            <div className="text-[8px] text-muted-foreground">
+      <header className="border-b-4 border-border p-2 md:p-4">
+        <div className="container mx-auto flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 md:gap-4">
+            <h1 className="text-xs md:text-sm text-primary">ZEIND & ALA</h1>
+            <div className="hidden sm:block text-[8px] text-muted-foreground">
               Day {daysTogether > 0 ? daysTogether : (couple ? 'Together!' : 'Solo')}
             </div>
             {user && (
-              <div className="text-[8px] text-gold">
+              <div className="hidden md:block text-[8px] text-gold">
                 🔥 {user.loginStreak} day streak
               </div>
             )}
           </div>
           
-          <ModeToggle isPartyMode={isPartyMode} onToggle={() => setIsPartyMode(!isPartyMode)} />
+          <div className="order-3 md:order-2 w-full md:w-auto flex justify-center">
+            <ModeToggle isPartyMode={isPartyMode} onToggle={() => setIsPartyMode(!isPartyMode)} />
+          </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2 order-2 md:order-3">
             <button 
               onClick={() => setIsDailyRewardsOpen(true)}
-              className="p-2 hover:bg-muted transition-colors"
+              className="p-1.5 md:p-2 hover:bg-muted transition-colors"
               title="Daily Rewards"
             >
-              <Gift className="w-4 h-4 text-gold" />
+              <Gift className="w-3 h-3 md:w-4 md:h-4 text-gold" />
             </button>
             <button 
               onClick={() => setIsAchievementsOpen(true)}
-              className="p-2 hover:bg-muted transition-colors"
+              className="p-1.5 md:p-2 hover:bg-muted transition-colors"
               title="Achievements"
             >
-              <Trophy className="w-4 h-4 text-gold" />
+              <Trophy className="w-3 h-3 md:w-4 md:h-4 text-gold" />
             </button>
             <button 
               onClick={() => setIsArcadeOpen(true)}
-              className="p-2 hover:bg-muted transition-colors"
+              className="p-1.5 md:p-2 hover:bg-muted transition-colors hidden sm:block"
               title="Arcade Zone"
             >
-              <Gamepad2 className="w-4 h-4 text-primary" />
+              <Gamepad2 className="w-3 h-3 md:w-4 md:h-4 text-primary" />
             </button>
             <button 
               onClick={() => navigate('/pet')}
-              className="p-2 hover:bg-muted transition-colors"
+              className="p-1.5 md:p-2 hover:bg-muted transition-colors"
               title="Pet Sanctuary"
             >
-              <PawPrint className="w-4 h-4 text-orange-400" />
+              <PawPrint className="w-3 h-3 md:w-4 md:h-4 text-orange-400" />
             </button>
             <button 
               onClick={() => setIsSettingsOpen(true)}
-              className="p-2 hover:bg-muted transition-colors"
+              className="p-1.5 md:p-2 hover:bg-muted transition-colors hidden sm:block"
             >
-              <Settings className="w-4 h-4 text-muted-foreground" />
+              <Settings className="w-3 h-3 md:w-4 md:h-4 text-muted-foreground" />
             </button>
             <button 
               onClick={() => { logout(); navigate("/"); }}
-              className="p-2 hover:bg-muted transition-colors"
+              className="p-1.5 md:p-2 hover:bg-muted transition-colors"
             >
-              <LogOut className="w-4 h-4 text-muted-foreground" />
+              <LogOut className="w-3 h-3 md:w-4 md:h-4 text-muted-foreground" />
             </button>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <main className="container mx-auto p-2 md:p-4 grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 pb-20">
         {/* Left Column - Character Info */}
         <div className="space-y-4">
           <AnimatePresence mode="wait">
@@ -321,8 +319,8 @@ const Dashboard = () => {
                   <PartyAvatars 
                     player1Name={user?.username || "Hero"} 
                     player2Name={partner?.username || "Partner"} 
-                    player1Avatar={getAvatarEmoji()}
-                    player2Avatar={getPartnerAvatarEmoji()}
+                    player1Avatar={getAvatarImage()}
+                    player2Avatar={getPartnerAvatarImage()}
                   />
                   
                   <div className="mt-6 space-y-3">
@@ -350,11 +348,15 @@ const Dashboard = () => {
                 <RPGDialog variant="personal" title={user?.username || "Hero"}>
                   <div className="flex items-center gap-4 mb-4">
                     <motion.div 
-                      className={`w-16 h-20 ${user?.gender === 'female' ? 'bg-heart/20 border-heart' : 'bg-personal/20 border-personal'} border-2 flex items-center justify-center`}
+                      className={`w-16 h-20 ${user?.gender === 'female' ? 'bg-heart/20 border-heart' : 'bg-personal/20 border-personal'} border-2 flex items-center justify-center overflow-hidden`}
                       animate={{ y: [0, -2, 0] }}
                       transition={{ duration: 1.5, repeat: Infinity }}
                     >
-                      <span className="text-2xl">{getAvatarEmoji()}</span>
+                      <img 
+                        src={getAvatarImage()} 
+                        alt="Avatar" 
+                        className={`object-contain ${user?.gender === 'male' ? 'w-16 h-16 scale-110' : 'w-14 h-14'}`}
+                      />
                     </motion.div>
                     
                     <div className="flex-1">
@@ -511,28 +513,28 @@ const Dashboard = () => {
 
       {/* Footer */}
       <footer className="fixed bottom-0 left-0 right-0 border-t-4 border-border bg-background p-2">
-        <div className="container mx-auto flex items-center justify-center gap-4 flex-wrap">
+        <div className="container mx-auto flex items-center justify-center gap-2 md:gap-4 flex-wrap">
           <button 
             onClick={() => setIsNewQuestOpen(true)}
-            className="pixel-btn-primary text-[8px] px-3 py-1"
+            className="pixel-btn-primary text-[7px] md:text-[8px] px-2 md:px-3 py-1"
           >
-            + NEW QUEST
+            + QUEST
           </button>
           <button 
             onClick={() => setIsShopOpen(true)}
-            className="pixel-btn-secondary text-[8px] px-3 py-1"
+            className="pixel-btn-secondary text-[7px] md:text-[8px] px-2 md:px-3 py-1"
           >
             SHOP
           </button>
           <button 
             onClick={() => setIsSkillsOpen(true)}
-            className="pixel-btn-accent text-[8px] px-3 py-1"
+            className="pixel-btn-accent text-[7px] md:text-[8px] px-2 md:px-3 py-1 hidden sm:block"
           >
             SKILLS
           </button>
           <button 
             onClick={() => setIsFinanceOpen(true)}
-            className="pixel-btn text-[8px] px-3 py-1 border-gold text-gold"
+            className="pixel-btn text-[7px] md:text-[8px] px-2 md:px-3 py-1 border-gold text-gold"
           >
             FINANCE
           </button>

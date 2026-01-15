@@ -10,11 +10,11 @@ interface Pipe {
 
 const GAME_WIDTH = 400;
 const GAME_HEIGHT = 500;
-const BIRD_SIZE = 30;
+const BIRD_SIZE = 32;
 const PIPE_WIDTH = 50;
 const PIPE_GAP = 150;
-const GRAVITY = 0.5;
-const JUMP_FORCE = -8;
+const GRAVITY = 0.6;
+const JUMP_FORCE = -10;
 const PIPE_SPEED = 3;
 
 const CoupleWingsGame = () => {
@@ -29,17 +29,22 @@ const CoupleWingsGame = () => {
   
   const gameLoopRef = useRef<number>();
   const pipeIdRef = useRef(0);
+  const birdRef = useRef({ y: GAME_HEIGHT / 2, velocity: 0 });
 
+  // Immediate jump with no delay
   const jump = useCallback(() => {
     if (gameState === "idle") {
       setGameState("playing");
+      birdRef.current.velocity = JUMP_FORCE;
       setBirdVelocity(JUMP_FORCE);
     } else if (gameState === "playing") {
+      birdRef.current.velocity = JUMP_FORCE;
       setBirdVelocity(JUMP_FORCE);
     }
   }, [gameState]);
 
   const resetGame = () => {
+    birdRef.current = { y: GAME_HEIGHT / 2, velocity: 0 };
     setBirdY(GAME_HEIGHT / 2);
     setBirdVelocity(0);
     setPipes([]);
@@ -48,7 +53,7 @@ const CoupleWingsGame = () => {
     setGameState("idle");
   };
 
-  // Keyboard controls
+  // Keyboard controls - immediate response
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Space" || e.key === " ") {
@@ -65,32 +70,49 @@ const CoupleWingsGame = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [jump, gameState]);
 
-  // Game loop
+  // Touch/click controls - immediate with pointer events
+  const handleInteraction = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    if (gameState === "gameover") {
+      resetGame();
+    } else {
+      jump();
+    }
+  }, [gameState, jump]);
+
+  // Game loop using refs for immediate response
   useEffect(() => {
     if (gameState !== "playing") return;
 
-    const gameLoop = () => {
-      // Update bird
-      setBirdVelocity((v) => v + GRAVITY);
-      setBirdY((y) => {
-        const newY = y + birdVelocity;
-        
-        // Check floor/ceiling collision
-        if (newY < 0 || newY > GAME_HEIGHT - BIRD_SIZE) {
-          setGameState("gameover");
-          if (score > highScore) {
-            setHighScore(score);
-            localStorage.setItem("couple-wings-highscore", String(score));
-          }
-          return y;
+    let lastTime = performance.now();
+    
+    const gameLoop = (currentTime: number) => {
+      const deltaTime = (currentTime - lastTime) / 16.67; // Normalize to 60fps
+      lastTime = currentTime;
+
+      // Update bird physics using refs (immediate)
+      birdRef.current.velocity += GRAVITY * deltaTime;
+      birdRef.current.y += birdRef.current.velocity * deltaTime;
+      
+      const newY = birdRef.current.y;
+      
+      // Check floor/ceiling collision
+      if (newY < 0 || newY > GAME_HEIGHT - BIRD_SIZE) {
+        setGameState("gameover");
+        if (score > highScore) {
+          setHighScore(score);
+          localStorage.setItem("couple-wings-highscore", String(score));
         }
-        return newY;
-      });
+        return;
+      }
+      
+      setBirdY(newY);
+      setBirdVelocity(birdRef.current.velocity);
 
       // Update pipes
       setPipes((currentPipes) => {
         let newPipes = currentPipes
-          .map((pipe) => ({ ...pipe, x: pipe.x - PIPE_SPEED }))
+          .map((pipe) => ({ ...pipe, x: pipe.x - PIPE_SPEED * deltaTime }))
           .filter((pipe) => pipe.x > -PIPE_WIDTH);
 
         // Add new pipe
@@ -114,16 +136,14 @@ const CoupleWingsGame = () => {
           // Collision detection
           const birdLeft = GAME_WIDTH / 4 - BIRD_SIZE / 2;
           const birdRight = birdLeft + BIRD_SIZE;
-          const birdTop = birdY;
-          const birdBottom = birdY + BIRD_SIZE;
+          const birdTop = birdRef.current.y;
+          const birdBottom = birdRef.current.y + BIRD_SIZE;
 
           const pipeLeft = pipe.x;
           const pipeRight = pipe.x + PIPE_WIDTH;
 
           if (birdRight > pipeLeft && birdLeft < pipeRight) {
-            // Bird is within pipe x range
             if (birdTop < pipe.gapY || birdBottom > pipe.gapY + PIPE_GAP) {
-              // Collision!
               setGameState("gameover");
               if (score > highScore) {
                 setHighScore(score);
@@ -148,45 +168,73 @@ const CoupleWingsGame = () => {
         cancelAnimationFrame(gameLoopRef.current);
       }
     };
-  }, [gameState, birdVelocity, birdY, score, highScore]);
+  }, [gameState, score, highScore]);
+
+  // Pixel Bird Component
+  const PixelBird = ({ rotation }: { rotation: number }) => (
+    <div 
+      className="relative"
+      style={{ 
+        width: BIRD_SIZE, 
+        height: BIRD_SIZE,
+        transform: `rotate(${rotation}deg)`,
+      }}
+    >
+      {/* Body */}
+      <div className="absolute bg-yellow-400" style={{ width: 20, height: 16, top: 8, left: 6 }} />
+      {/* Head */}
+      <div className="absolute bg-yellow-300" style={{ width: 14, height: 12, top: 4, left: 14 }} />
+      {/* Eye */}
+      <div className="absolute bg-white" style={{ width: 6, height: 6, top: 6, left: 18 }} />
+      <div className="absolute bg-black" style={{ width: 3, height: 3, top: 7, left: 20 }} />
+      {/* Beak */}
+      <div className="absolute bg-orange-500" style={{ width: 8, height: 4, top: 10, left: 26 }} />
+      {/* Wing */}
+      <div 
+        className="absolute bg-yellow-500"
+        style={{ 
+          width: 10, 
+          height: 8, 
+          top: birdVelocity < 0 ? 4 : 14, 
+          left: 4,
+          transition: 'top 0.05s'
+        }} 
+      />
+      {/* Tail */}
+      <div className="absolute bg-orange-400" style={{ width: 6, height: 8, top: 10, left: 0 }} />
+    </div>
+  );
 
   return (
     <div className="flex flex-col items-center">
       {/* Game Canvas */}
       <div
-        className="relative overflow-hidden border-4 border-pink-400 cursor-pointer select-none"
+        className="relative overflow-hidden border-4 border-primary cursor-pointer select-none touch-none"
         style={{ width: GAME_WIDTH, height: GAME_HEIGHT }}
-        onClick={() => gameState === "gameover" ? resetGame() : jump()}
+        onMouseDown={handleInteraction}
+        onTouchStart={handleInteraction}
       >
         {/* Parallax Background */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#1a0a2e] via-[#16213e] to-[#0f3460]">
-          {/* Stars */}
-          {[...Array(20)].map((_, i) => (
+        <div className="absolute inset-0 bg-gradient-to-b from-sky-400 via-sky-300 to-sky-200">
+          {/* Clouds */}
+          {[...Array(5)].map((_, i) => (
             <motion.div
               key={i}
-              className="absolute w-1 h-1 bg-white rounded-full"
+              className="absolute bg-white/80 rounded-full"
               style={{
-                left: `${(i * 5) % 100}%`,
-                top: `${(i * 7) % 40}%`,
+                width: 40 + i * 10,
+                height: 20 + i * 5,
+                top: `${10 + i * 15}%`,
               }}
-              animate={{ opacity: [0.3, 1, 0.3] }}
-              transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.1 }}
+              animate={{ x: [-100, GAME_WIDTH + 100] }}
+              transition={{ 
+                duration: 15 + i * 3, 
+                repeat: Infinity, 
+                ease: "linear",
+                delay: i * 2 
+              }}
             />
           ))}
-          
-          {/* Moving clouds */}
-          <motion.div
-            className="absolute w-20 h-8 bg-pink-300/20 rounded-full"
-            style={{ top: "20%" }}
-            animate={{ x: [-100, GAME_WIDTH + 100] }}
-            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-          />
-          <motion.div
-            className="absolute w-16 h-6 bg-pink-300/10 rounded-full"
-            style={{ top: "40%" }}
-            animate={{ x: [-80, GAME_WIDTH + 80] }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear", delay: 5 }}
-          />
         </div>
 
         {/* Pipes */}
@@ -194,7 +242,7 @@ const CoupleWingsGame = () => {
           <div key={pipe.id}>
             {/* Top pipe */}
             <div
-              className="absolute bg-gradient-to-r from-green-600 to-green-400 border-2 border-green-300"
+              className="absolute bg-gradient-to-r from-green-600 to-green-400 border-2 border-green-700"
               style={{
                 left: pipe.x,
                 top: 0,
@@ -202,11 +250,11 @@ const CoupleWingsGame = () => {
                 height: pipe.gapY,
               }}
             >
-              <div className="absolute bottom-0 left-0 right-0 h-4 bg-green-500 border-t-2 border-green-300" />
+              <div className="absolute bottom-0 left-0 right-0 h-6 bg-green-500 border-2 border-green-700 -mx-1" style={{ width: PIPE_WIDTH + 8, left: -4 }} />
             </div>
             {/* Bottom pipe */}
             <div
-              className="absolute bg-gradient-to-r from-green-600 to-green-400 border-2 border-green-300"
+              className="absolute bg-gradient-to-r from-green-600 to-green-400 border-2 border-green-700"
               style={{
                 left: pipe.x,
                 top: pipe.gapY + PIPE_GAP,
@@ -214,41 +262,40 @@ const CoupleWingsGame = () => {
                 height: GAME_HEIGHT - pipe.gapY - PIPE_GAP,
               }}
             >
-              <div className="absolute top-0 left-0 right-0 h-4 bg-green-500 border-b-2 border-green-300" />
+              <div className="absolute top-0 left-0 right-0 h-6 bg-green-500 border-2 border-green-700 -mx-1" style={{ width: PIPE_WIDTH + 8, left: -4 }} />
             </div>
           </div>
         ))}
 
-        {/* Bird (Heart sprite) */}
-        <motion.div
-          className="absolute text-3xl"
+        {/* Bird */}
+        <div
+          className="absolute"
           style={{
             left: GAME_WIDTH / 4 - BIRD_SIZE / 2,
             top: birdY,
-            transform: `rotate(${Math.min(birdVelocity * 3, 45)}deg)`,
           }}
         >
-          💕
-        </motion.div>
+          <PixelBird rotation={Math.min(Math.max(birdVelocity * 3, -30), 60)} />
+        </div>
 
         {/* Score */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 font-pixel text-2xl text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 font-pixel text-3xl text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
           {score}
         </div>
 
         {/* Idle Screen */}
         {gameState === "idle" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
             <motion.div
               animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 1, repeat: Infinity }}
-              className="text-4xl mb-4"
+              transition={{ duration: 0.8, repeat: Infinity }}
+              className="mb-4"
             >
-              💕
+              <PixelBird rotation={0} />
             </motion.div>
-            <p className="font-pixel text-sm text-white mb-2">COUPLE WINGS</p>
-            <p className="text-[8px] text-pink-300 animate-pulse">
-              TAP OR SPACE TO START
+            <p className="font-pixel text-sm text-white mb-2">FLAPPY COUPLE</p>
+            <p className="text-[10px] text-yellow-300 animate-pulse">
+              TAP OR SPACE TO FLY
             </p>
           </div>
         )}
@@ -266,7 +313,7 @@ const CoupleWingsGame = () => {
                 e.stopPropagation();
                 resetGame();
               }}
-              className="pixel-btn border-2 border-pink-400 text-pink-400 px-4 py-2 text-[10px] hover:bg-pink-400/20"
+              className="pixel-btn border-2 border-yellow-400 text-yellow-400 px-4 py-2 text-[10px] hover:bg-yellow-400/20"
             >
               TRY AGAIN
             </button>
@@ -274,12 +321,12 @@ const CoupleWingsGame = () => {
         )}
 
         {/* Ground */}
-        <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-pink-600 via-pink-400 to-pink-600" />
+        <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-r from-green-700 via-green-600 to-green-700 border-t-2 border-green-800" />
       </div>
 
       {/* Controls hint */}
       <p className="text-[8px] text-gray-400 mt-4">
-        SPACE / TAP to jump
+        SPACE / TAP to fly • Instant response!
       </p>
     </div>
   );

@@ -1,9 +1,10 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Gamepad2, User, Mail, Lock, Heart } from "lucide-react";
+import { User, Mail, Lock, Heart } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Gender } from "@/types";
+import IntroAnimation from "@/components/IntroAnimation";
 
 type AuthMode = 'welcome' | 'login' | 'register';
 
@@ -13,6 +14,11 @@ const LoginPage = () => {
   
   const [mode, setMode] = useState<AuthMode>('welcome');
   const [isLoading, setIsLoading] = useState(false);
+  const [showIntro, setShowIntro] = useState(() => {
+    // Only show intro once per session
+    const hasSeenIntro = sessionStorage.getItem('zeind-ala-intro-seen');
+    return !hasSeenIntro;
+  });
   
   // Form states
   const [username, setUsername] = useState('');
@@ -20,6 +26,11 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [gender, setGender] = useState<Gender>('male');
   const [error, setError] = useState('');
+
+  const handleIntroComplete = () => {
+    sessionStorage.setItem('zeind-ala-intro-seen', 'true');
+    setShowIntro(false);
+  };
 
   // Redirect if already authenticated
   if (isAuthenticated) {
@@ -65,7 +76,13 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden scanlines">
+    <>
+      {/* Intro Animation */}
+      <AnimatePresence>
+        {showIntro && <IntroAnimation onComplete={handleIntroComplete} />}
+      </AnimatePresence>
+      
+      <div className="min-h-screen bg-background relative overflow-hidden scanlines">
       {/* Animated stars background */}
       <div className="absolute inset-0 stars-bg" />
       
@@ -89,23 +106,20 @@ const LoginPage = () => {
                 initial={{ opacity: 0, y: -30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.2 }}
-                className="mb-12"
+                className="mb-8"
               >
-                <motion.div
-                  animate={{ rotate: [0, 5, -5, 0] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="inline-block mb-6"
+                <motion.div 
+                  className="mb-4"
+                  animate={{ y: [0, -5, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 >
-                  <Gamepad2 className="w-16 h-16 text-primary" />
+                  <img src="/logo.png" alt="Zeind & Ala" className="w-28 h-28 md:w-36 md:h-36 mx-auto" />
                 </motion.div>
                 
-                <h1 className="text-xl md:text-2xl text-primary mb-4 tracking-wider">
-                  COUPLE
+                <h1 className="text-2xl md:text-3xl text-primary tracking-wider">
+                  ZEIND <span className="text-foreground">&</span> ALA
                 </h1>
-                <h2 className="text-2xl md:text-4xl text-foreground mb-2">
-                  QUEST
-                </h2>
-                <div className="text-[8px] text-secondary tracking-widest">
+                <div className="text-[8px] text-secondary tracking-widest mt-2">
                   ★ THE ADVENTURE BEGINS ★
                 </div>
               </motion.div>
@@ -238,8 +252,12 @@ const LoginPage = () => {
               exit={{ opacity: 0, y: -20 }}
               className="w-full max-w-sm"
             >
-              <div className="bg-dialog-bg border-4 border-secondary p-6 shadow-[4px_4px_0_hsl(var(--pixel-shadow))]">
-                <h2 className="text-lg text-secondary text-center mb-6">NEW GAME</h2>
+              <div className={`bg-dialog-bg border-4 p-6 shadow-[4px_4px_0_hsl(var(--pixel-shadow))] ${
+                gender === 'female' ? 'border-heart' : 'border-primary'
+              }`}>
+                <h2 className={`text-lg text-center mb-6 ${
+                  gender === 'female' ? 'text-heart' : 'text-primary'
+                }`}>NEW GAME</h2>
                 
                 <form onSubmit={handleRegister} className="space-y-4">
                   {/* Gender Selection */}
@@ -248,29 +266,40 @@ const LoginPage = () => {
                       <Heart className="w-3 h-3" /> PILIH KARAKTER
                     </label>
                     <div className="grid grid-cols-2 gap-2">
+                      {/* Male Character */}
                       <button
                         type="button"
                         onClick={() => setGender('male')}
                         className={`p-3 border-2 transition-all ${
                           gender === 'male' 
-                            ? 'border-primary bg-primary/20' 
-                            : 'border-border hover:border-primary/50'
+                            ? 'border-blue-500 bg-blue-500/20' 
+                            : 'border-border hover:border-blue-500/50'
                         }`}
                       >
-                        <div className="text-2xl mb-1">🧙‍♂️</div>
-                        <div className="text-[8px] text-foreground">COWOK</div>
+                        <img 
+                          src="/char-male.png" 
+                          alt="Cowok" 
+                          className="w-16 h-16 mx-auto mb-2 object-contain scale-110"
+                        />
+                        <div className="text-[8px] text-blue-400 font-bold">COWOK</div>
                       </button>
+                      
+                      {/* Female Character */}
                       <button
                         type="button"
                         onClick={() => setGender('female')}
                         className={`p-3 border-2 transition-all ${
                           gender === 'female' 
-                            ? 'border-heart bg-heart/20' 
-                            : 'border-border hover:border-heart/50'
+                            ? 'border-pink-500 bg-pink-500/20' 
+                            : 'border-border hover:border-pink-500/50'
                         }`}
                       >
-                        <div className="text-2xl mb-1">🧙‍♀️</div>
-                        <div className="text-[8px] text-foreground">CEWEK</div>
+                        <img 
+                          src="/char-female.png" 
+                          alt="Cewek" 
+                          className="w-12 h-12 mx-auto mb-2 object-contain"
+                        />
+                        <div className="text-[8px] text-pink-400 font-bold">CEWEK</div>
                       </button>
                     </div>
                   </div>
@@ -283,7 +312,9 @@ const LoginPage = () => {
                       type="text"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="w-full bg-muted border-2 border-border p-2 text-[10px] text-foreground focus:border-secondary outline-none"
+                      className={`w-full bg-muted border-2 border-border p-2 text-[10px] text-foreground outline-none ${
+                        gender === 'female' ? 'focus:border-heart' : 'focus:border-primary'
+                      }`}
                       placeholder="Nama karaktermu"
                     />
                   </div>
@@ -296,7 +327,9 @@ const LoginPage = () => {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-muted border-2 border-border p-2 text-[10px] text-foreground focus:border-secondary outline-none"
+                      className={`w-full bg-muted border-2 border-border p-2 text-[10px] text-foreground outline-none ${
+                        gender === 'female' ? 'focus:border-heart' : 'focus:border-primary'
+                      }`}
                       placeholder="email@example.com"
                     />
                   </div>
@@ -309,7 +342,9 @@ const LoginPage = () => {
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full bg-muted border-2 border-border p-2 text-[10px] text-foreground focus:border-secondary outline-none"
+                      className={`w-full bg-muted border-2 border-border p-2 text-[10px] text-foreground outline-none ${
+                        gender === 'female' ? 'focus:border-heart' : 'focus:border-primary'
+                      }`}
                       placeholder="Min. 4 karakter"
                     />
                   </div>
@@ -321,7 +356,11 @@ const LoginPage = () => {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full pixel-btn-secondary py-2 text-[10px]"
+                    className={`w-full py-2 text-[10px] border-4 transition-all ${
+                      gender === 'female' 
+                        ? 'border-heart bg-heart/20 text-heart hover:bg-heart/30' 
+                        : 'border-primary bg-primary/20 text-primary hover:bg-primary/30'
+                    }`}
                   >
                     {isLoading ? 'CREATING...' : 'MULAI PETUALANGAN'}
                   </button>
@@ -329,7 +368,9 @@ const LoginPage = () => {
                 
                 <button
                   onClick={() => setMode('welcome')}
-                  className="w-full text-[8px] text-muted-foreground mt-4 hover:text-secondary"
+                  className={`w-full text-[8px] text-muted-foreground mt-4 ${
+                    gender === 'female' ? 'hover:text-heart' : 'hover:text-primary'
+                  }`}
                 >
                   ← KEMBALI
                 </button>
@@ -343,10 +384,10 @@ const LoginPage = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
-          className="absolute bottom-8 text-[6px] text-muted-foreground"
+          className="absolute bottom-8 text-[6px] text-muted-foreground text-center w-full left-0 px-4"
         >
           <p>VERSION 2.0.0</p>
-          <p className="text-center mt-1">© 2024 COUPLE QUEST</p>
+          <p className="mt-1">© 2026 ZEIND & ALA</p>
         </motion.div>
 
         {/* Decorative corners */}
@@ -356,6 +397,7 @@ const LoginPage = () => {
         <div className="absolute bottom-4 right-4 w-8 h-8 border-b-4 border-r-4 border-primary/30" />
       </div>
     </div>
+    </>
   );
 };
 

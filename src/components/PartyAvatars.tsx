@@ -9,46 +9,12 @@ interface PartyAvatarsProps {
 }
 
 const PartyAvatars = ({ player1Name, player2Name, player1Avatar, player2Avatar }: PartyAvatarsProps) => {
-  // Simple 8x8 pixel art patterns as CSS
-  const renderPixelCharacter = (isPlayer1: boolean) => {
-    const hairColor = isPlayer1 ? "#8B4513" : "#2D1B0E";
-    const skinColor = "#FDBF6F";
-    const shirtColor = isPlayer1 ? "#3B82F6" : "#EC4899";
-    
-    return (
-      <div className="w-16 h-20 relative">
-        {/* Hair */}
-        <div 
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-4"
-          style={{ backgroundColor: hairColor }}
-        />
-        {/* Head */}
-        <div 
-          className="absolute top-3 left-1/2 -translate-x-1/2 w-8 h-6"
-          style={{ backgroundColor: skinColor }}
-        />
-        {/* Eyes */}
-        <div className="absolute top-5 left-1/2 -translate-x-1/2 flex gap-2">
-          <div className="w-1 h-1 bg-foreground" />
-          <div className="w-1 h-1 bg-foreground" />
-        </div>
-        {/* Body */}
-        <div 
-          className="absolute top-9 left-1/2 -translate-x-1/2 w-10 h-8"
-          style={{ backgroundColor: shirtColor }}
-        />
-        {/* Legs */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex gap-1">
-          <div className="w-3 h-3 bg-muted" />
-          <div className="w-3 h-3 bg-muted" />
-        </div>
-      </div>
-    );
-  };
-
+  // Check if avatar is male to apply scaling
+  const isMaleAvatar = (avatar?: string) => avatar?.includes('char-male');
+  
   return (
     <motion.div 
-      className="flex items-end justify-center gap-2"
+      className="flex items-end justify-center gap-4"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -59,13 +25,19 @@ const PartyAvatars = ({ player1Name, player2Name, player1Avatar, player2Avatar }
         animate={{ y: [0, -3, 0] }}
         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
       >
-        {renderPixelCharacter(true)}
-        <span className="text-[8px] text-personal mt-1">{player1Name}</span>
+        <div className="w-16 h-16 flex items-center justify-center">
+          <img 
+            src={player1Avatar || "/char-male.png"} 
+            alt={player1Name} 
+            className={`object-contain ${isMaleAvatar(player1Avatar) ? 'w-16 h-16 scale-110' : 'w-14 h-14'}`}
+          />
+        </div>
+        <span className="text-[8px] text-blue-400 mt-1">{player1Name}</span>
       </motion.div>
 
       {/* Heart between them */}
       <motion.div
-        className="mb-8"
+        className="mb-6"
         animate={{ 
           scale: [1, 1.2, 1],
           rotate: [0, 5, -5, 0]
@@ -85,8 +57,14 @@ const PartyAvatars = ({ player1Name, player2Name, player1Avatar, player2Avatar }
         animate={{ y: [0, -3, 0] }}
         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
       >
-        {renderPixelCharacter(false)}
-        <span className="text-[8px] text-party mt-1">{player2Name}</span>
+        <div className="w-16 h-16 flex items-center justify-center">
+          <img 
+            src={player2Avatar || "/char-female.png"} 
+            alt={player2Name} 
+            className={`object-contain ${isMaleAvatar(player2Avatar) ? 'w-16 h-16 scale-110' : 'w-14 h-14'}`}
+          />
+        </div>
+        <span className="text-[8px] text-pink-400 mt-1">{player2Name}</span>
       </motion.div>
     </motion.div>
   );
