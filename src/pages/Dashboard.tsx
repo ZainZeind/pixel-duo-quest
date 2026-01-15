@@ -13,6 +13,7 @@ import ShopModal from "@/components/modals/ShopModal";
 import SkillsModal from "@/components/modals/SkillsModal";
 import SettingsModal from "@/components/modals/SettingsModal";
 import ArcadeZone from "@/components/games/ArcadeZone";
+import PetWidget from "@/components/pet/PetWidget";
 import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
@@ -26,6 +27,20 @@ const Dashboard = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isArcadeOpen, setIsArcadeOpen] = useState(false);
   
+  // Player gold state (for pet shop integration)
+  const [playerGold, setPlayerGold] = useState(() => {
+    const saved = localStorage.getItem("playerGold");
+    return saved ? parseInt(saved) : 1250;
+  });
+
+  const handleSpendGold = (amount: number) => {
+    setPlayerGold(prev => {
+      const newGold = Math.max(0, prev - amount);
+      localStorage.setItem("playerGold", String(newGold));
+      return newGold;
+    });
+  };
+
   // Mock player data
   const player = {
     name: "Hero",
@@ -36,7 +51,6 @@ const Dashboard = () => {
     maxHp: 100,
     mp: 60,
     maxMp: 80,
-    gold: 1250,
   };
 
   const party = {
@@ -241,9 +255,15 @@ const Dashboard = () => {
 
           {/* Wallet */}
           <WalletDisplay 
-            personalGold={player.gold} 
+            personalGold={playerGold} 
             treasuryGold={party.treasury}
             isPartyMode={isPartyMode} 
+          />
+
+          {/* Pet Widget - Guild Mascot */}
+          <PetWidget 
+            playerGold={playerGold} 
+            onSpendGold={handleSpendGold} 
           />
         </div>
 
@@ -348,7 +368,7 @@ const Dashboard = () => {
       <ShopModal 
         isOpen={isShopOpen} 
         onClose={() => setIsShopOpen(false)} 
-        playerGold={player.gold}
+        playerGold={playerGold}
       />
       <SkillsModal 
         isOpen={isSkillsOpen} 
