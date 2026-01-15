@@ -4,15 +4,18 @@ interface LogbookEntryProps {
   player: string;
   action: string;
   timestamp: string;
-  type: "quest" | "gold" | "level" | "heart";
+  type: "quest" | "gold" | "level" | "heart" | "system" | "achievement" | "pet";
 }
 
 const LogbookEntry = ({ player, action, timestamp, type }: LogbookEntryProps) => {
-  const typeColors = {
+  const typeColors: Record<LogbookEntryProps['type'], string> = {
     quest: "text-secondary",
     gold: "text-gold",
     level: "text-xp",
     heart: "text-heart",
+    system: "text-primary",
+    achievement: "text-gold",
+    pet: "text-orange-400",
   };
 
   return (

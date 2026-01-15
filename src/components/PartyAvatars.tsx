@@ -4,9 +4,11 @@ import { Heart } from "lucide-react";
 interface PartyAvatarsProps {
   player1Name: string;
   player2Name: string;
+  player1Avatar?: string;
+  player2Avatar?: string;
 }
 
-const PartyAvatars = ({ player1Name, player2Name }: PartyAvatarsProps) => {
+const PartyAvatars = ({ player1Name, player2Name, player1Avatar, player2Avatar }: PartyAvatarsProps) => {
   // Simple 8x8 pixel art patterns as CSS
   const renderPixelCharacter = (isPlayer1: boolean) => {
     const hairColor = isPlayer1 ? "#8B4513" : "#2D1B0E";
